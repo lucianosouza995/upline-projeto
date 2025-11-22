@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste do Chatbot de Elevadores</title>
+    <style>
+        body { font-family: sans-serif; max-width: 500px; margin: 2rem auto; padding: 1rem; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], textarea { width: 100%; padding: 8px; }
+        button { background-color: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #resultado { margin-top: 20px; padding: 10px; border: 1px solid #ccc; background: #f9f9f9; }
+        .sucesso { color: green; }
+        .erro { color: red; }
+    </style>
+</head>
+<body>
+
+    <h2>Simulação do Chatbot 🤖</h2>
+
+    <div class="input-group">
+        <label for="codigoQr">Código QR do Elevador:</label>
+        <input type="text" id="codigoQr" placeholder="Ex: ELEV-01">
+    </div>
+
+    <div class="input-group">
+        <label>
+            <input type="checkbox" id="pessoaPresa"> 🚨 Há pessoa presa?
+        </label>
+    </div>
+
+    <div class="input-group">
+        <label for="descricao">Descrição do Problema:</label>
+        <textarea id="descricao" rows="3" placeholder="Ex: Porta não fecha..."></textarea>
+    </div>
+
+    <button onclick="enviarChamado()">Abrir Chamado</button>
+
+    <div id="resultado" style="display:none;"></div>
+
+    <script>
+        // ⚠️ IMPORTANTE: Substitua esta URL pela URL que o Firebase te deu ao fazer o deploy!
+        const URL_DA_FUNCAO = "https://us-central1-SEU-PROJETO.cloudfunctions.net/abrirChamado";
+
+        async function enviarChamado() {
+            const btn = document.querySelector("button");
+            const resultadoDiv = document.getElementById("resultado");
+            
+            // 1. Coleta os dados do formulário (como o chatbot faria)
+            const dadosDoChatbot = {
+                codigo_qr: document.getElementById("codigoQr").value,
+                pessoa_presa: document.getElementById("pessoaPresa").checked,
+                descricao: document.getElementById("descricao").value
+            };
+
+            resultadoDiv.style.display = "block";
+            resultadoDiv.innerHTML = "Processando...";
+            btn.disabled = true;
+
+            try {
+                // 2. Faz a chamada para a Cloud Function (O "fetch")
+                const resposta = await fetch(URL_DA_FUNCAO, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(dadosDoChatbot)
+                });
+
+                const dadosRetornados = await resposta.json();
+
+                // 3. Exibe a resposta na tela
+                if (resposta.ok) {
+                    resultadoDiv.className = "sucesso";
+                    resultadoDiv.innerHTML = `
+                        <strong>✅ Sucesso!</strong><br>
+                        ${dadosRetornados.mensagem}<br>
+                        <small>Técnico: ${dadosRetornados.tecnico_atribuido || "A aguardar"}</small>
+                    `;
+                } else {
+                    resultadoDiv.className = "erro";
+                    resultadoDiv.innerHTML = `<strong>❌ Erro:</strong> ${dadosRetornados.erro}`;
+                }
+
+            } catch (erro) {
+                console.error(erro);
+                resultadoDiv.className = "erro";
+                resultadoDiv.innerHTML = "Erro de conexão com o servidor.";
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
